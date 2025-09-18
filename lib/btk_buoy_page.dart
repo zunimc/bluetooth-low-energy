@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -30,7 +31,12 @@ class BtkBuoyAuthenticator {
     try {
       debugPrint('Conectando a ${device.platformName}...');
       await device.connect(timeout: CONNECTION_TIMEOUT, autoConnect: false);
-      await device.requestMtu(185); // Negocia hasta 247 según log
+
+      if (Platform.isAndroid) {
+        await device.requestMtu(185);
+      }
+
+      // await device.requestMtu(185); // Negocia hasta 247 según log
       _connectedDevice = device;
 
       List<BluetoothService> services = await device.discoverServices();
