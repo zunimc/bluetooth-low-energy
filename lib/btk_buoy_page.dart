@@ -21,7 +21,7 @@ class BtkBuoyAuthenticator {
   String? _pendingResponse;
   bool _isAuthenticated = false;
 
-  /// Indica si deberíamos usar Write With Response (true) o WithoutResponse (false)
+  // Indica si deberíamos usar Write With Response (true) o WithoutResponse (false)
   bool _preferWriteWithResponse = false;
 
   Future<bool> connectAndAuthenticate(
@@ -36,7 +36,6 @@ class BtkBuoyAuthenticator {
         await device.requestMtu(185);
       }
 
-      // await device.requestMtu(185); // Negocia hasta 247 según log
       _connectedDevice = device;
 
       List<BluetoothService> services = await device.discoverServices();
@@ -101,26 +100,14 @@ class BtkBuoyAuthenticator {
     }
   }
 
-  /// Envía 15 arrobas para despertar la boya
-  // Future<void> _sendActivationCommand() async {
-  //   String activationCommand = '@@@@@@@@@@@@@@@'; // 15 arrobas
-  //   await _writeCommand(
-  //     activationCommand,
-  //     preferResponse: _preferWriteWithResponse,
-  //   );
-  //   await Future.delayed(const Duration(milliseconds: 300));
-  // }
-
   Future<void> _sendActivationCommand() async {
     const wake = '@@@@@@@@@@@@@@@'; // sin \r\n
     await _writeCharacteristic!.write(utf8.encode(wake), withoutResponse: true);
     debugPrint('🔔 Wake enviado');
-    await Future.delayed(
-      const Duration(seconds: 2),
-    ); // espera 2 s antes de seguir
+    await Future.delayed(const Duration(seconds: 2));
   }
 
-  /// Autenticación con clave
+  // Autenticación con clave
   Future<bool> _authenticate(String password) async {
     try {
       final authCommand = '@FF,50,"$password"';
@@ -145,86 +132,7 @@ class BtkBuoyAuthenticator {
     }
   }
 
-  // Future<bool> _authenticate(String password) async {
-  //   try {
-  //     final authCommand = '@FF,50,"$password"\r\n';
-  //     _pendingResponse = ':FF,50';
-
-  //     // Fuerza un único write WITH response, sin trocear
-  //     final bytes = utf8.encode(authCommand);
-  //     await _writeCharacteristic!.write(bytes, withoutResponse: false);
-  //     debugPrint('🔑 Comando de autenticación enviado (${bytes.length} bytes)');
-
-  //     final start = DateTime.now();
-  //     while (_pendingResponse != null) {
-  //       if (DateTime.now().difference(start) > AUTH_TIMEOUT) {
-  //         debugPrint('⏱️ Timeout de autenticación');
-  //         return false;
-  //       }
-  //       await Future.delayed(const Duration(milliseconds: 100));
-  //     }
-  //     return _isAuthenticated;
-  //   } catch (e) {
-  //     debugPrint('Error en _authenticate: $e');
-  //     return false;
-  //   }
-  // }
-
-  /// Escritura con fragmentación adaptada al MTU
-  // Future<void> _writeCommand(String command, {bool? preferResponse}) async {
-  //   if (_writeCharacteristic == null) {
-  //     throw Exception('No hay característica de escritura');
-  //   }
-
-  //   final fullCommand = command.endsWith('\r\n') ? command : '$command\r\n';
-  //   final data = utf8.encode(fullCommand);
-
-  //   // Si el caller especifica preferencia, la usamos; si no, usamos la detectada.
-  //   final useWithResponse = preferResponse ?? _preferWriteWithResponse;
-
-  //   if (useWithResponse) {
-  //     // Modo seguro: con respuesta — chunk algo mayor (pero aún conservador)
-  //     const int maxChunkSize =
-  //         20; // seguro y cómodo si el periférico soporta withResponse
-  //     for (int i = 0; i < data.length; i += maxChunkSize) {
-  //       final end = (i + maxChunkSize < data.length)
-  //           ? i + maxChunkSize
-  //           : data.length;
-  //       final chunk = data.sublist(i, end);
-  //       try {
-  //         await _writeCharacteristic!.write(chunk, withoutResponse: false);
-  //         debugPrint('📦 Chunk (withResponse) enviado: ${chunk.length} bytes');
-  //       } catch (e) {
-  //         debugPrint('❌ Error enviando chunk (withResponse): $e');
-  //         rethrow;
-  //       }
-  //       // pequeña espera para dar tiempo al periférico/stack
-  //       await Future.delayed(const Duration(milliseconds: 50));
-  //     }
-  //   } else {
-  //     // Modo withoutResponse: pacing estricto y chunks muy pequeños
-  //     const int maxChunkSize = 16; // 16 bytes para máxima compatibilidad
-  //     for (int i = 0; i < data.length; i += maxChunkSize) {
-  //       final end = (i + maxChunkSize < data.length)
-  //           ? i + maxChunkSize
-  //           : data.length;
-  //       final chunk = data.sublist(i, end);
-  //       try {
-  //         await _writeCharacteristic!.write(chunk, withoutResponse: true);
-  //         debugPrint('📦 Chunk (noResponse) enviado: ${chunk.length} bytes');
-  //       } catch (e) {
-  //         debugPrint('❌ Error enviando chunk (noResponse): $e');
-  //         rethrow;
-  //       }
-  //       // pacing: aumentamos a 120ms para evitar GATT_INVALID_ATTRIBUTE_LENGTH
-  //       await Future.delayed(const Duration(milliseconds: 120));
-  //     }
-  //   }
-
-  //   debugPrint('✅ Comando completo enviado: $fullCommand');
-  // }
-
-  /// Escritura con fragmentación adaptada y fallback en caso de GATT_INVALID_ATTRIBUTE_LENGTH
+  // Escritura con fragmentación adaptada y fallback en caso de GATT_INVALID_ATTRIBUTE_LENGTH
   Future<void> _writeCommand(String command, {bool? preferResponse}) async {
     if (_writeCharacteristic == null) {
       throw Exception('No hay característica de escritura');
@@ -235,7 +143,6 @@ class BtkBuoyAuthenticator {
 
     final useWithResponse = preferResponse ?? _preferWriteWithResponse;
 
-    // Conservador: 16 bytes es ampliamente compatible con muchos periféricos.
     int chunkSizeWithResponse = 16;
     int chunkSizeWithoutResponse = 16;
     final int pacingWithResponseMs = 50;
